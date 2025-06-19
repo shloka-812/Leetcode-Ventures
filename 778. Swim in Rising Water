@@ -1,0 +1,93 @@
+class DisjointSet {
+
+public:
+    vector<int> rank, parent, size;
+
+    DisjointSet(int n) {
+        rank.resize(n + 1, 0);
+        parent.resize(n + 1);
+        size.resize(n + 1);
+        for (int i = 0; i <= n; i++) {
+            parent[i] = i;
+            size[i] = 1;
+        }
+    }
+
+    int findUPar(int node) {
+        if (node == parent[node])
+            return node;
+        return parent[node] = findUPar(parent[node]);
+    }
+
+    void unionByRank(int u, int v) {
+        int ulp_u = findUPar(u);
+        int ulp_v = findUPar(v);
+        if (ulp_u == ulp_v)
+            return;
+        if (rank[ulp_u] < rank[ulp_v]) {
+            parent[ulp_u] = ulp_v;
+        } else if (rank[ulp_v] < rank[ulp_u]) {
+            parent[ulp_v] = ulp_u;
+        } else {
+            parent[ulp_v] = ulp_u;
+            rank[ulp_u]++;
+        }
+    }
+
+    void unionBySize(int u, int v) {
+        int ulp_u = findUPar(u);
+        int ulp_v = findUPar(v);
+        if (ulp_u == ulp_v)
+            return;
+        if (size[ulp_u] < size[ulp_v]) {
+            parent[ulp_u] = ulp_v;
+            size[ulp_v] += size[ulp_u];
+        } else {
+            parent[ulp_v] = ulp_u;
+            size[ulp_u] += size[ulp_v];
+        }
+    }
+};
+
+class Solution {
+public:
+    int swimInWater(vector<vector<int>>& grid) {
+        // use connected components
+        int t = 0;
+        int n = grid.size();
+        DisjointSet ds(n * n);
+        vector<pair<int,int>> direc = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+        // flat and sort in ascending order (sorting because we want to move sequentially with time as elevations are randomnly distributed in the gris 
+        //trying to simulate rising water - Sorting tells you: "at time t = h, cell (i, j) becomes accessible"
+        vector<pair<int, pair<int, int>>> flat;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                flat.push_back({grid[i][j], {i,j}});
+            }
+        }
+        sort(flat.begin(), flat.end());
+        vector<vector<bool>> visited(n, vector<bool>(n, false));
+        
+        for(auto cell : flat) {
+           int h = cell.first;
+            int i = cell.second.first;
+            int j = cell.second.second; 
+            visited[i][j] = true;
+            for (int k = 0; k < 4; k++) {
+                int xcoord = i + direc[k].first;
+                int ycoord = j + direc[k].second;
+                //check if x and y are in bounds and that value is not visited
+                if (xcoord < n && xcoord >= 0 && ycoord < n && ycoord >= 0 && visited[xcoord][ycoord]){
+                    int neighbor = grid[xcoord][ycoord];
+                    ds.unionBySize(h, neighbor);
+                }
+            }
+            //after moving in all four directions - checking if these two positions are connected
+            if(ds.findUPar(grid[0][0]) == ds.findUPar(grid[n-1][n-1])){
+                return h;
+            }
+        }
+        return -1;
+  }
+};

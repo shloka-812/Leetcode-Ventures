@@ -1,0 +1,110 @@
+class DisjointSet {
+
+public:
+    vector<int> rank, parent, size;
+
+    DisjointSet(int n) {
+        rank.resize(n + 1, 0);
+        parent.resize(n + 1);
+        size.resize(n + 1);
+        for (int i = 0; i <= n; i++) {
+            parent[i] = i;
+            size[i] = 1;
+        }
+    }
+
+    int findUPar(int node) {
+        if (node == parent[node])
+            return node;
+        return parent[node] = findUPar(parent[node]);
+    }
+
+    void unionByRank(int u, int v) {
+        int ulp_u = findUPar(u);
+        int ulp_v = findUPar(v);
+        if (ulp_u == ulp_v)
+            return;
+        if (rank[ulp_u] < rank[ulp_v]) {
+            parent[ulp_u] = ulp_v;
+        } else if (rank[ulp_v] < rank[ulp_u]) {
+            parent[ulp_v] = ulp_u;
+        } else {
+            parent[ulp_v] = ulp_u;
+            rank[ulp_u]++;
+        }
+    }
+
+    void unionBySize(int u, int v) {
+        int ulp_u = findUPar(u);
+        int ulp_v = findUPar(v);
+        if (ulp_u == ulp_v)
+            return;
+        if (size[ulp_u] < size[ulp_v]) {
+            parent[ulp_u] = ulp_v;
+            size[ulp_v] += size[ulp_u];
+        } else {
+            parent[ulp_v] = ulp_u;
+            size[ulp_u] += size[ulp_v];
+        }
+    }
+};
+
+class Solution {
+public:
+    int getNumber(int x, int y, int m) { return x * m + y; }
+    int largestIsland(vector<vector<int>>& grid) {
+        int n = grid.size();
+        int m = grid[0].size();
+        DisjointSet ds(n * m);
+        bool zeroEncountered = false;
+        vector<pair<int, int>> directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                int val = grid[i][j];
+                int no = getNumber(i, j, m);
+                if (val == 0) {
+                    zeroEncountered = true;
+                    continue;
+                }
+                for (int k = 0; k < 4; k++) {
+                    int x = directions[k].first;
+                    int y = directions[k].second;
+                    if (x + i < n && x + i >= 0 && y + j < m && y + j >= 0 &&
+                        grid[x + i][y + j] == 1) {
+                        ds.unionBySize(getNumber(i, j, m),
+                                       getNumber(x + i, y + j, m));
+                    }
+                }
+            }
+        }
+        int maxSize = INT_MIN;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (grid[i][j] == 0) {
+                    // convert this to 1
+                    // checkout all four directions
+                    // checkif in bounds, check its ultimate parent and add into
+                    // set - so that if any two direction has same unltimate parent we do not add that size twice
+                    int size = 0;
+                    set<int> areas;
+                    for (int k = 0; k < 4; k++) {
+                        int x = directions[k].first;
+                        int y = directions[k].second;
+                        if (x + i < n && x + i >= 0 && y + j < m &&
+                            y + j >= 0 && grid[x + i][y + j] == 1) {
+                            int up = ds.findUPar(getNumber(x + i, y + j, m));
+                          
+                            if (areas.find(up) == areas.end()) {
+                                areas.insert(up);
+                                size += ds.size[up];
+                            }
+                        }
+                    }
+                    maxSize = max(maxSize, size+1);
+                }
+            }
+        }
+        return (zeroEncountered == false) ? m * n : maxSize;
+    }
+};
